@@ -49,4 +49,3 @@
          (loop for ,form-value in ,form-name do (write-to-xmpp ,form-value))))))
 
 (export 'echo)
-;; blah blah blah.

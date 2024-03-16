@@ -2,7 +2,12 @@
   :version "0.1.0"
   :author "Selwyn Simsek"
   :license ""
-  :depends-on ("cl-ppcre")
+  :depends-on ("cl-ppcre"
+               "cl-xmpp-tls"
+               "metabang-bind"
+               "trivial-custom-debugger"
+               "trivial-gray-streams"
+               "cl-xmpp-sasl")
   :components ((:module "src"
                 :components
                 ((:file "main"))))

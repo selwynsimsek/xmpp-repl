@@ -4,6 +4,8 @@
   :license ""
   :depends-on ("cl-ppcre"
                "cl-xmpp-tls"
+               "bordeaux-threads"
+               "str"
                "metabang-bind"
                "trivial-custom-debugger"
                "trivial-gray-streams"

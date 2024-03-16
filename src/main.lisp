@@ -29,7 +29,8 @@
 
 (defun connect-and-auth (host username password)
   (setf *connection* (xmpp:connect-tls :hostname host))
-  (xmpp:auth *connection* username password "resource" :mechanism :sasl-plain))
+  (xmpp:auth *connection* username password "resource" :mechanism :sasl-plain)
+  (bt:make-thread (lambda () (xmpp:receive-stanza-loop *connection*)) :name "xmpp-repl-stanza-loop"))
 
 
 (defun rep (input output)
@@ -59,6 +60,7 @@
 (defclass xmpp-input-stream (trivial-gray-streams:fundamental-character-input-stream)
   ((connection :initarg :connection :accessor connection)
    (recipient :initarg :recipient :accessor recipient)
+   (lock :initarg :lock :accessor lock :initform (bt:make-lock "xmpp-input-stream"))
    (buffer :initarg :buffer :accessor buffer :type string :initform "")))
 
 (defvar *input-streams* nil)
@@ -68,21 +70,41 @@
   (push input-stream *input-streams*))
 
 (defmethod trivial-gray-streams:stream-read-char ((stream xmpp-input-stream))
-  )
+  (bind (((:accessors connection recipient buffer lock) stream))
+    (loop named inner do
+      (bt:with-lock-held (lock)
+        (if (zerop (length buffer))
+            ;; Buffer is empty; check if we are connected. If so, continue to next iteration. If not, return eof
+            (if (xmpp:connectedp connection)
+                (sleep 0.001)
+                (return-from inner :eof))
+
+            ;; Buffer has a character; return it and remove the character from the buffer
+            (let ((return-char (aref buffer 0)))
+              (setf buffer (subseq buffer 1))
+              (return-from inner return-char)))))))
 
 (defmethod trivial-gray-streams:stream-read-char-no-hang ((stream xmpp-input-stream))
-  (error "not implemented yet"))
+  (bind (((:accessors connection buffer lock) stream))
+    (bt:with-lock-held (lock)
+      (if (zerop (length buffer))
+          (if (xmpp:connectedp connection) nil :eof)
+          (let ((return-char (aref buffer 0)))
+            (setf buffer (subseq buffer 1))
+            return-char))))
 
-;; (defmethod trivial-gray-streams:stream-read-line ((stream xmpp-input-stream))
-;;   (error "not implemented yet"))
+  ;; (defmethod trivial-gray-streams:stream-read-line ((stream xmpp-input-stream))
+  ;;   (error "not implemented yet"))
 
-(defmethod trivial-gray-streams:stream-read-sequence ((stream xmpp-input-stream)
-                                 sequence start end &key &allow-other-keys)
-  (error "not implemented yet"))
+  (defmethod trivial-gray-streams:stream-read-sequence ((stream xmpp-input-stream)
+                                                        sequence start end &key &allow-other-keys)
+    (error "not implemented yet")))
 
 
 (defmethod trivial-gray-streams:stream-unread-char ((stream xmpp-input-stream) character)
-  (error "not implemented yet"))
+  (bind (((:accessors connection buffer lock) stream))
+    (bt:with-lock-held (lock)
+      (setf buffer (concatenate 'string (make-string 1 :initial-element character) buffer)))))
 
 (defmethod trivial-gray-streams:stream-listen ((stream xmpp-input-stream))
   (not (zerop (length (buffer stream)))))
@@ -134,9 +156,11 @@
   (bind (((:accessors xmpp:from xmpp:id xmpp:body) message))
     (when xmpp:id
       (loop for input-stream in *input-streams*
-            do (bind (((:accessors recipient buffer) input-stream))
-                 (when (string= xmpp:from recipient)
-                   (setf buffer (concatenate 'string buffer "#\Newline" message))))))))
+            do (bind (((:accessors recipient buffer lock) input-stream))
+                 (when (str:starts-with-p recipient xmpp:from)
+                   (bt:with-lock-held (lock)
+                     (setf buffer (concatenate 'string buffer xmpp:body  (make-string 1 :initial-element #\Newline)))
+                     (format t "new buffer: ~a~%" buffer))))))))
 
 #|
 '(#:stream-read-char

@@ -35,7 +35,7 @@
 
 (defun rep (input output)
                                         ; from jackdaniel
-  (format t "~&~a> " (package-name *package*))
+  (format output "~&~a>~%" (package-name *package*))
   (shiftf +++ ++ + - (read input nil '%quit))
   (when (eq - '%quit)
     (throw :exit "bye!"))
@@ -45,17 +45,21 @@
 
 (defun repl (input output)
   (catch :exit
-    (loop (handler-case (rep input output)
+    (loop  do (handler-case (rep input output)
             (condition (c)
-              (format *error-output* "~&~a~%~a~%" (class-name (class-of c)) c))))))
+              (format output "~&~a~%~a~%" (class-name (class-of c)) c))))))
+
+(defun xmpp-repl (recipient)
+  (repl (make-instance 'xmpp-input-stream :recipient recipient :connection *connection*)
+        (make-instance 'xmpp-output-stream :recipient recipient :connection *connection*)))
 
 (defclass xmpp-output-stream (trivial-gray-streams:fundamental-character-output-stream)
   ((connection :initarg :connection :accessor connection)
    (recipient :initarg :recipient :accessor recipient)
    (buffer :initarg :buffer :accessor buffer :type string :initform (make-array (list 0)
-                                                                             :element-type 'character
-                                                                             :adjustable t
-                                                                             :fill-pointer 0))))
+                                                                                :element-type 'character
+                                                                                :adjustable t
+                                                                                :fill-pointer 0))))
 
 (defclass xmpp-input-stream (trivial-gray-streams:fundamental-character-input-stream)
   ((connection :initarg :connection :accessor connection)

@@ -6,7 +6,8 @@ xmpp-repl provides Gray streams which allow one to send data to and from an XMPP
 It also provides a simple yet fully featured REPL using these stream classes.
 
 ** Usage
-xmpp-repl requires an XMPP account to be already set up. In order to establish a REPL with a 
+xmpp-repl requires an XMPP account to be already set up in addition to any that will be communicated with.
+In order to establish a REPL with ~recipient@hostname.com~:
 
 #+BEGIN_SRC lisp
   (xmpp-repl:connect-and-auth "host" "username" "password")

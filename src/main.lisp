@@ -4,17 +4,6 @@
            #:xmpp-repl #:exit-xmpp-repl))
 (in-package :xmpp-repl)
 
-
-;; (defun write-to-xmpp (object)
-;;   (let ((process (uiop:launch-program '("/usr/bin/xmpp-bridge")
-;;                                       :input :stream
-;;                                       :output :stream
-;;                                       :error-output :stream
-;;                                       :wait nil
-;;                                       :search t)))
-;;     (print object (uiop:process-info-input process))
-;;     (uiop:terminate-process process)))
-
 (defun get-this-pid ()
   ;; https://stackoverflow.com/a/52790432
   "Return PID of this current lisp process."

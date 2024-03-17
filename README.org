@@ -21,6 +21,10 @@ Easiest when quicklisp is installed. Clone to quicklisp/local-projects and run
 (ql:quickload :xmpp-repl)
 #+END_SRC
 
+** Improvements and open questions
++ How to deal with multiplexing? Several Lisp images (potentially on different machines) communicating with the same account
++ How to deal with all the I/O customization variables? Perhaps bind all of them to a bidirectional XMPP stream.
+
 ** Author
 
 + Selwyn Simsek

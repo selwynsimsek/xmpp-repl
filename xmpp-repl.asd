@@ -12,7 +12,8 @@
                "cl-xmpp-sasl")
   :components ((:module "src"
                 :components
-                ((:file "main"))))
+                ((:file "main")
+                 (:file "repl"))))
   :description "Communicate with a Lisp process over XMPP"
   :in-order-to ((test-op (test-op "xmpp-repl/tests"))))
 

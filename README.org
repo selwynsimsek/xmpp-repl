@@ -1,12 +1,31 @@
-* Xmpp-Repl  - Communicate with a Lisp process over XMPP
+* xmpp-repl
+** Purpose
+xmpp-repl provides a REPL that one may use to communicate with a Common Lisp image over XMPP using any XMPP client.
+** Description
+xmpp-repl provides Gray streams which allow one to send data to and from an XMPP account transparently.
+It also provides a simple yet fully featured REPL using these stream classes.
 
 ** Usage
+xmpp-repl requires an XMPP account to be already set up. In order to establish a REPL with a 
+
+#+BEGIN_SRC lisp
+  (xmpp-repl:connect-and-auth "host" "username" "password")
+  (xmpp-repl:xmpp-repl "recipient@hostname.com")
+#+END_SRC
+
 
 ** Installation
+Easiest when quicklisp is installed. Clone to quicklisp/local-projects and run
+#+BEGIN_SRC lisp
+(ql:quickload :xmpp-repl)
+#+END_SRC
 
 ** Author
 
 + Selwyn Simsek
+
+** Licence
+BSD-2
 
 ** Copyright
 

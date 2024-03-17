@@ -1,5 +1,7 @@
 (defpackage xmpp-repl
-  (:use :cl :metabang-bind))
+  (:use :cl :metabang-bind)
+  (:export #:xmpp-input-stream #:xmpp-output-stream #:connect-and-auth #:*connection*
+           #:xmpp-repl #:exit-xmpp-repl))
 (in-package :xmpp-repl)
 
 
@@ -28,40 +30,6 @@
   (setf *connection* (xmpp:connect-tls :hostname host))
   (xmpp:auth *connection* username password "resource" :mechanism :sasl-plain)
   (bt:make-thread (lambda () (xmpp:receive-stanza-loop *connection*)) :name "xmpp-repl-stanza-loop"))
-
-
-(defun rep (input output)
-                                        ; from jackdaniel
-  (format output "~&~a>~%" (package-name *package*))
-  (shiftf +++ ++ + - (read input nil '%quit))
-  (when (eq - '%quit)
-    (throw :exit "bye!"))
-  (shiftf /// // / (multiple-value-list (eval -)))
-  (shiftf *** ** * (first /))
-  (format output "~&~{~s ~^~%~}~%" /))
-
-(defun repl (input output)
-  (with-simple-restart (exit-xmpp-repl "Exit XMPP repl for PID ~a." (get-this-pid))
-    (catch :exit
-      (unwind-protect
-           (loop do
-             (with-simple-restart (abort "Abort current XMPP repl request.")
-               (trivial-custom-debugger:with-debugger
-                   ((lambda (condition hook)
-                      (declare (ignore hook))
-                      (format output "Condition ~a was signalled.~%" condition)
-                      (format output "Choose a restart: ~%")
-                      (let ((restarts (compute-restarts condition)))
-                        (loop for i from 0
-                              for restart in restarts
-                              do (format output "~a: [~a] ~a~%" i (string-upcase (restart-name restart)) restart))
-                        (loop do
-                          (let ((index (parse-integer (read-line input))))
-                            (if (and index (<= 0 index) (< index (length restarts)))
-                                (invoke-restart (nth index restarts))
-                                (format output "Choose a valid restart.")))))))
-                 (rep input output))))
-        (format output "; Closing XMPP repl~%") ))))
 
 (defun xmpp-repl (recipient)
   (repl (make-instance 'xmpp-input-stream :recipient recipient :connection *connection*)
@@ -179,14 +147,3 @@
                    (bt:with-lock-held (lock)
                      (setf buffer (concatenate 'string buffer xmpp:body  (make-string 1 :initial-element #\Newline)))
                      (format t "new buffer: ~a~%" buffer))))))))
-
-#|
-'(#:stream-read-char
-#:stream-unread-char #:stream-read-char-no-hang
-#:stream-peek-char #:stream-listen #:stream-read-line
-#:stream-clear-input #:stream-write-char #:stream-line-column
-#:stream-start-line-p #:stream-write-string #:stream-terpri
-#:stream-fresh-line #:stream-finish-output #:stream-force-output
-#:stream-clear-output #:stream-advance-to-column
-#:stream-read-byte #:stream-write-byte)
-|#

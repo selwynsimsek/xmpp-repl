@@ -1,11 +1,12 @@
 (defsystem "xmpp-repl"
   :version "0.1.0"
   :author "Selwyn Simsek"
-  :license ""
+  :license "BSD-2"
   :depends-on ("cl-ppcre"
                "cl-xmpp-tls"
                "bordeaux-threads"
                "str"
+               "trivial-garbage"
                "metabang-bind"
                "trivial-custom-debugger"
                "trivial-gray-streams"
@@ -19,7 +20,7 @@
 
 (defsystem "xmpp-repl/tests"
   :author "Selwyn Simsek"
-  :license ""
+  :license "BSD-2"
   :depends-on ("xmpp-repl"
                "rove")
   :components ((:module "tests"

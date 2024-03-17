@@ -14,7 +14,7 @@
                            do (return (car
                                        (ppcre:all-matches-as-strings "\\d+" line)))))))
 (defvar *connection* nil)
-
+(defvar *input-streams-lock* (bt:make-lock "connection lock"))
 (defun connect-and-auth (host username password)
   (setf *connection* (xmpp:connect-tls :hostname host))
   (xmpp:auth *connection* username password "resource" :mechanism :sasl-plain)
@@ -42,7 +42,8 @@
 
 (defmethod initialize-instance :after ((input-stream xmpp-input-stream) &rest initargs &key &allow-other-keys)
   (declare (ignore initargs))
-  (push input-stream *input-streams*))
+  (bt:with-lock-held (*input-streams-lock*)
+    (push (trivial-garbage:make-weak-pointer input-stream) *input-streams*)))
 
 (defmethod trivial-gray-streams:stream-read-char ((stream xmpp-input-stream))
   (bind (((:accessors connection recipient buffer lock) stream))
@@ -131,8 +132,11 @@
   (bind (((:accessors xmpp:from xmpp:id xmpp:body) message))
     (when xmpp:id
       (loop for input-stream in *input-streams*
-            do (bind (((:accessors recipient buffer lock) input-stream))
-                 (when (str:starts-with-p recipient xmpp:from)
-                   (bt:with-lock-held (lock)
-                     (setf buffer (concatenate 'string buffer xmpp:body  (make-string 1 :initial-element #\Newline)))
-                     (format t "new buffer: ~a~%" buffer))))))))
+            do
+               (when (trivial-garbage:weak-pointer-value input-stream)
+                 (bind (((:accessors recipient buffer lock) (trivial-garbage:weak-pointer-value input-stream)))
+                   (when (str:starts-with-p recipient xmpp:from)
+                     (bt:with-lock-held (lock)
+                       (setf buffer (concatenate 'string buffer xmpp:body  (make-string 1 :initial-element #\Newline))))))))))
+  (bt:with-lock-held (*input-streams-lock*)
+    (setf *input-streams* (remove-if-not (lambda (v) (trivial-garbage:weak-pointer-value v)) *input-streams*))))

@@ -21,11 +21,8 @@
                          while line
                          when (ppcre:scan "^Pid" line)
                            do (return (car
-                                       (ppcre:all-matches-as-strings "\\d+" 
-                                                                     line)))))))
+                                       (ppcre:all-matches-as-strings "\\d+" line)))))))
 (defvar *connection* nil)
-
-;(xmpp:auth connection "password" "resource" :mechanism :sasl-plain)
 
 (defun connect-and-auth (host username password)
   (setf *connection* (xmpp:connect-tls :hostname host))
@@ -41,13 +38,30 @@
     (throw :exit "bye!"))
   (shiftf /// // / (multiple-value-list (eval -)))
   (shiftf *** ** * (first /))
-  (format output "~&~{ ~s~^~%~}~%" /))
+  (format output "~&~{~s ~^~%~}~%" /))
 
 (defun repl (input output)
-  (catch :exit
-    (loop  do (handler-case (rep input output)
-            (condition (c)
-              (format output "~&~a~%~a~%" (class-name (class-of c)) c))))))
+  (with-simple-restart (exit-xmpp-repl "Exit XMPP repl for PID ~a." (get-this-pid))
+    (catch :exit
+      (unwind-protect
+           (loop do
+             (with-simple-restart (abort "Abort current XMPP repl request.")
+               (trivial-custom-debugger:with-debugger
+                   ((lambda (condition hook)
+                      (declare (ignore hook))
+                      (format output "Condition ~a was signalled.~%" condition)
+                      (format output "Choose a restart: ~%")
+                      (let ((restarts (compute-restarts condition)))
+                        (loop for i from 0
+                              for restart in restarts
+                              do (format output "~a: [~a] ~a~%" i (string-upcase (restart-name restart)) restart))
+                        (loop do
+                          (let ((index (parse-integer (read-line input))))
+                            (if (and index (<= 0 index) (< index (length restarts)))
+                                (invoke-restart (nth index restarts))
+                                (format output "Choose a valid restart.")))))))
+                 (rep input output))))
+        (format output "; Closing XMPP repl~%") ))))
 
 (defun xmpp-repl (recipient)
   (repl (make-instance 'xmpp-input-stream :recipient recipient :connection *connection*)
